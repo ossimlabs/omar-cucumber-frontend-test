@@ -17,7 +17,7 @@ plugins {
     
     id 'java'
     
-    id 'com.bmuschko.docker-remote-api' version '4.8.1'
+    id 'com.bmuschko.docker-remote-api' version '4.6.2'
 }
 
 configurations {
@@ -31,22 +31,19 @@ if(project.hasProperty("runTags"))
     tags = Eval.me runTags
 }
 
-
 repositories {
     maven { url nexusRepo }
+    maven { url ossimMavenProxy }
 }
 
 dependencies {
     // Use the latest Groovy version for building this library
     implementation 'org.codehaus.groovy:groovy-all:2.5.4'
 
-    // https://mvnrepository.com/artifact/com.github.mkolisnyk/cucumber-runner
     compile group: 'com.github.mkolisnyk', name: 'cucumber-runner', version: '1.3.5'
 
-    // https://mvnrepository.com/artifact/io.cucumber/cucumber-groovy
     compile group: 'io.cucumber', name: 'cucumber-groovy', version: '4.3.0'
 
-    // https://mvnrepository.com/artifact/io.cucumber/cucumber-junit
     testCompile group: 'io.cucumber', name: 'cucumber-junit', version: '4.3.1'
 
     testCompile group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: '5.5.0-M1'
@@ -60,32 +57,25 @@ dependencies {
     compile "org.apache.tomcat:tomcat-jasper-el:8.5.23"
     compile "org.apache.tomcat:tomcat-jsp-api:8.5.23"
 
-    // https://mvnrepository.com/artifact/org.gebish/geb-core
     compile group: 'org.gebish', name: 'geb-core', version: '2.3.1'
 
-    // https://mvnrepository.com/artifact/org.seleniumhq.selenium/selenium-htmlunit-driver
     compile group: 'org.seleniumhq.selenium', name: 'selenium-htmlunit-driver', version: '2.52.0'
 
-    // https://mvnrepository.com/artifact/net.sourceforge.htmlunit/htmlunit
     compile group: 'net.sourceforge.htmlunit', name: 'htmlunit', version: '2.35.0'
 
-    // https://mvnrepository.com/artifact/org.seleniumhq.selenium/selenium-chrome-driver
     compile group: 'org.seleniumhq.selenium', name: 'selenium-chrome-driver', version: '3.141.59'
 
-    // https://mvnrepository.com/artifact/org.seleniumhq.selenium/selenium-firefox-driver
     compile group: 'org.seleniumhq.selenium', name: 'selenium-firefox-driver', version: '3.141.59'
 
-    // https://mvnrepository.com/artifact/org.seleniumhq.selenium/selenium-support
     compile group: 'org.seleniumhq.selenium', name: 'selenium-support', version: '3.141.59'
 
-    // https://mvnrepository.com/artifact/commons-io/commons-io
     compile group: 'commons-io', name: 'commons-io', version: '2.6'
 
     compile "javax.media:jai_core:1.1.3"
     compile "javax.media:jai_codec:1.1.3"
     compile "javax.media:jai_imageio:1.1"
 
-    compile("org.geoscript:geoscript-groovy:1.14-SNAPSHOT"){
+    compile("org.geoscript:geoscript-groovy:1.7.0"){
         exclude module: "ehcache"
         exclude module: "slf4j-log4j12"
         exclude module: "xml-apis"
@@ -102,7 +92,6 @@ mainClassName = 'omar.cucumber.frontend.test.Application'
 defaultTasks = ['shadowJar']
 
 version = "${buildVersion}"
-
 
 sourceSets {
     main {
@@ -121,6 +110,11 @@ shadowJar {
 }
 
 run {
+    if (multi == "true")
+    {
+        environment 'multi', 'true'
+    }
+
     if (runEnvironment == "local")
     {
         environment 'runEnv', 'local'
@@ -129,15 +123,28 @@ run {
     }
 }
 
+import com.bmuschko.gradle.docker.tasks.image.DockerPushImage
+import com.bmuschko.gradle.docker.tasks.image.DockerTagImage
 import com.bmuschko.gradle.docker.tasks.image.Dockerfile
 import com.bmuschko.gradle.docker.tasks.image.DockerBuildImage
+
+docker {
+    registryCredentials {
+        username.set("${dockerRegistryUsername}".toString())
+        password.set("${dockerRegistryPassword}".toString())
+        url.set("${dockerRegistryUrl}".toString())
+    }
+}
 
 task createDockerfile(type: Dockerfile) {
     dependsOn shadowJar
     from "${dockerBaseImage}:${dockerBaseImageTag}"
     label(['maintainer': 'MAXAR'])
     runCommand('yum -y install java-1.8.0-openjdk firefox selenium Xvfb')
+    environmentVariable("CURL_USER_NAME", "${cUname}")
+    environmentVariable("CURL_PASSWORD", "${cPword}")
     runCommand('useradd -u 1001 -r -g 0 --create-home -d /home/omar -s /sbin/nologin -c \'Default Application User\' omar')
+    environmentVariable("HOME","/home/omar")
     runCommand('mkdir /home/omar/build')
     runCommand('mkdir /home/omar/build/classes')
     runCommand('mkdir /home/omar/src')
@@ -169,5 +176,19 @@ task copyFile(type: Copy) {
 
 task buildDockerImage(type: DockerBuildImage) {
     dependsOn copyFile
-    tags.add("${project.name}:latest")
+    tags.add("${project.name}:${buildVersion}")
+}
+
+task tagDockerImage(type: DockerTagImage) {
+    dependsOn buildDockerImage
+    targetImageId "${project.name}:${buildVersion}"
+    tag.set("${buildVersion}".toString())
+    repository.set("${dockerRegistryUrl}/${project.name}".toString())
+}
+
+task pushDockerImage(type: DockerPushImage) {
+    dependsOn tagDockerImage
+    registryCredentials = registryCredentials
+    imageName.set("${dockerRegistryUrl}/${project.name}".toString())
+    tag.set("${buildVersion}".toString())
 }
