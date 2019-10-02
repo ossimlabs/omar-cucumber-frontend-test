@@ -117,7 +117,6 @@ run {
     }
 }
 
-
 import com.bmuschko.gradle.docker.tasks.image.DockerPushImage
 import com.bmuschko.gradle.docker.tasks.image.DockerTagImage
 import com.bmuschko.gradle.docker.tasks.image.Dockerfile
@@ -168,7 +167,7 @@ task copyFile(type: Copy) {
 
 task buildDockerImage(type: DockerBuildImage) {
     dependsOn copyFile
-    tags.add("${project.name}:latest")
+    tags.add("${project.name}:${buildVersion}")
 }
 
 task tagDockerImage(type: DockerTagImage) {
