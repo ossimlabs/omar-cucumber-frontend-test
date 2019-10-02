@@ -17,7 +17,7 @@ plugins {
     
     id 'java'
     
-    id 'com.bmuschko.docker-remote-api' version '4.8.1'
+    id 'com.bmuschko.docker-remote-api' version '4.6.2'
 }
 
 configurations {
@@ -33,6 +33,7 @@ if(project.hasProperty("runTags"))
 
 repositories {
     maven { url nexusRepo }
+    maven { url ossimMavenProxy }
 }
 
 dependencies {
@@ -74,7 +75,7 @@ dependencies {
     compile "javax.media:jai_codec:1.1.3"
     compile "javax.media:jai_imageio:1.1"
 
-    compile("org.geoscript:geoscript-groovy:1.14-SNAPSHOT"){
+    compile("org.geoscript:geoscript-groovy:1.7.0"){
         exclude module: "ehcache"
         exclude module: "slf4j-log4j12"
         exclude module: "xml-apis"
@@ -109,6 +110,11 @@ shadowJar {
 }
 
 run {
+    if (multi == "true")
+    {
+        environment 'multi', 'true'
+    }
+
     if (runEnvironment == "local")
     {
         environment 'runEnv', 'local'
@@ -135,7 +141,10 @@ task createDockerfile(type: Dockerfile) {
     from "${dockerBaseImage}:${dockerBaseImageTag}"
     label(['maintainer': 'MAXAR'])
     runCommand('yum -y install java-1.8.0-openjdk firefox selenium Xvfb')
+    environmentVariable("CURL_USER_NAME", "${cUname}")
+    environmentVariable("CURL_PASSWORD", "${cPword}")
     runCommand('useradd -u 1001 -r -g 0 --create-home -d /home/omar -s /sbin/nologin -c \'Default Application User\' omar')
+    environmentVariable("HOME","/home/omar")
     runCommand('mkdir /home/omar/build')
     runCommand('mkdir /home/omar/build/classes')
     runCommand('mkdir /home/omar/src')
