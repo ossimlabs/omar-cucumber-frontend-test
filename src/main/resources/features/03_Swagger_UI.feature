@@ -1,8 +1,8 @@
 @swagger_ui
 Feature: SwaggerUserInterface
 
-# Scenario: Start
-#    Given I am starting the swagger ui selenium server
+  Scenario: Start
+    Given I am starting the swagger ui selenium server
 
   Scenario: [Swagger-01] MENSA Documentation is available
     Given that the mensa swagger page is available for mensa
@@ -61,5 +61,5 @@ Feature: SwaggerUserInterface
       | swaggerApp | swaggerEndpoint | swaggerEndpointSubName | params   |
       | download   | archive         | archive                | download |
 
-#  Scenario: Stop
-#    Given I am stopping the swagger ui selenium server
+  Scenario: Stop
+    Given I am stopping the swagger ui selenium server

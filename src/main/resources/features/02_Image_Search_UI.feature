@@ -2,8 +2,8 @@
 Feature: O2MapUserInterface
   As an analyst I need to be able to discover imagery in a user interface to choose for analysis
 
- # Scenario: Start
- #   Given I am starting the image search selenium server
+  Scenario: Start
+    Given I am starting the image search selenium server
 
   Scenario: [MAP-01] UI Map Search
     Given that I am starting at the O2 Home page
@@ -76,5 +76,5 @@ Feature: O2MapUserInterface
 #    And end date set to xxxxx
 #    Then search results displays image 05FEB09OV05010005V090205M0001912264B220000100072M_001508507
 
-#  Scenario: Stop
-#    Given I am stopping the image search selenium server
+  Scenario: Stop
+    Given I am stopping the image search selenium server
