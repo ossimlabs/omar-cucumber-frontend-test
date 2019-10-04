@@ -24,7 +24,7 @@ The frontend tests are automatically executed using a Jenkins build on https://j
 
 Running the frontend tests requires 3 things: Gradle, the ChromeDriver/FirefoxDriver, and a compatible version of Chrome/Firefox. With those installed, simply run the *gradle frontend* command from the repository's base directory to execute the *frontend* task specified in the Gradle Build file.
 
-The default config file uses the dev deployment of OMAR located at https://omar-dev.ossim.io
+The default config file uses the dev deployment of OMAR located at https://omar-dev.ossim.io/omar-cucumber-frontend-test/frontend-test/
 
 # Quickstart
 
