@@ -155,6 +155,8 @@ task createDockerfile(type: Dockerfile) {
     runCommand('chown 1001:0 -R /home/omar')
     runCommand('chmod -R 777 /home/omar')
     user('1001')
+    volume('/conf')
+    environmentVariable("CUCUMBER_CONFIG_LOCATION","/conf")
     workingDir('/home/omar')
     environmentVariable("DISPLAY",':1')
     exposePort(8080)
