@@ -1,4 +1,4 @@
-targetDeployment = System.getenv("TARGET_DEPLOYMENT")
+targetDeployment = System.getenv("BRANCH_NAME")
 if (!targetDeployment) {
     targetDeployment = "dev"
 }
@@ -13,6 +13,18 @@ if (!rbtcloudRootDir) {
     rbtcloudRootDir = "https://omar-${targetDeployment}.${domainName}"
 }
 
+switch(targetDeployment) {
+    case "dev":
+        rbtcloudRootDir = "https://omar-${targetDeployment}.${domainName}"
+        break
+    case "master":
+        rbtcloudRootDir = "https://omar.${domainName}"
+        break
+    default:
+        println("\nBad TARGET_DEPLOYMENT provided: <${targetDeployment}>. Defaulting to dev.")
+        rbtcloudRootDir = "https://omar-dev.${domainName}"
+        break
+}
 
 println("\nOMAR URL being tested: ${rbtcloudRootDir}\n")
 
