@@ -68,7 +68,7 @@ timeout(time: 30, unit: 'MINUTES') {
                            docker login $DOCKER_REGISTRY_URL \
                             --username=$ORG_GRADLE_PROJECT_dockerRegistryUsername \
                             --password=$ORG_GRADLE_PROJECT_dockerRegistryPassword
-                           gradle pushDockerImage \
+                           ./gradlew pushDockerImage \
                                -PossimMavenProxy=${OSSIM_MAVEN_PROXY} \
                                -PbuildVersion=${dockerTagSuffixOrEmpty()}
                         """
