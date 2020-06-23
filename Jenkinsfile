@@ -60,18 +60,39 @@ timeout(time: 30, unit: 'MINUTES') {
                      usernameVariable: 'ORG_GRADLE_PROJECT_dockerRegistryUsername',
                      passwordVariable: 'ORG_GRADLE_PROJECT_dockerRegistryPassword']
             ]) {
-                stage("Publish Docker App") {
-                    withCredentials([]) {
+                stage('Docker build') {
+                    container('docker') {
+                        withDockerRegistry(credentialsId: 'dockerCredentials', url: "https://${DOCKER_REGISTRY_DOWNLOAD_URL}") {  //TODO
                         sh """
-                           export CUCUMBER_CONFIG_LOCATION="cucumber-config-frontend.groovy"
-                           export DISPLAY=":1" 
-                           docker login $DOCKER_REGISTRY_PUBLIC_UPLOAD_URL \
-                            --username=$ORG_GRADLE_PROJECT_dockerRegistryUsername \
-                            --password=$ORG_GRADLE_PROJECT_dockerRegistryPassword
-                           ./gradlew pushDockerImage \
-                               -PossimMavenProxy=${MAVEN_DOWNLOAD_URL} \
-                               -PbuildVersion=${dockerTagSuffixOrEmpty()}
+                            docker build --network=host -t "${DOCKER_REGISTRY_PUBLIC_UPLOAD_URL}"/omar-cucumber-backend-test:${BRANCH_NAME} .
                         """
+                        }
+                    }
+                }
+                stage('Docker push'){
+                    container('docker') {
+                        withDockerRegistry(credentialsId: 'dockerCredentials', url: "https://${DOCKER_REGISTRY_PUBLIC_UPLOAD_URL}") {
+                        sh """
+                            docker push "${DOCKER_REGISTRY_PUBLIC_UPLOAD_URL}"/omar-cucumber-backend-test:${BRANCH_NAME}
+                        """
+                        }
+                    }
+                }
+                    
+            }
+
+            stage('Package chart'){
+                container('helm') {
+                    sh """
+                        mkdir packaged-chart
+                        helm package -d packaged-chart chart
+                    """
+                }
+            }
+            stage('Upload chart'){
+                container('builder') {
+                    withCredentials([usernameColonPassword(credentialsId: 'helmCredentials', variable: 'HELM_CREDENTIALS')]) {
+                    sh "curl -u ${HELM_CREDENTIALS} ${HELM_UPLOAD_URL} --upload-file packaged-chart/*.tgz -v"
                     }
                 }
             }
