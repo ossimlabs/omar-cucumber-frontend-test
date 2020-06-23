@@ -2,6 +2,7 @@ properties([
         parameters([
                 string(name: 'BUILD_NODE', defaultValue: 'omar-build', description: 'The build node to run on'),
                 booleanParam(name: 'CLEAN_WORKSPACE', defaultValue: true, description: 'Clean the workspace at the end of the run'),
+                string(name: 'DOCKER_REGISTRY_DOWNLOAD_URL', defaultValue: 'nexus-docker-private-group.ossim.io', description: 'Repository of docker images')
         ]),
         pipelineTriggers([
                 [$class: "GitHubPushTrigger"]
@@ -11,8 +12,38 @@ properties([
         disableConcurrentBuilds()
 ])
 
+podTemplate(
+  containers: [
+    containerTemplate(
+      name: 'docker',
+      image: 'docker:latest',
+      ttyEnabled: true,
+      command: 'cat',
+      privileged: true
+    ),
+    containerTemplate(
+      image: "${DOCKER_REGISTRY_DOWNLOAD_URL}/omar-builder:1.0.0",
+      name: 'builder',
+      command: 'cat',
+      ttyEnabled: true
+    ),
+    containerTemplate(
+      image: "${DOCKER_REGISTRY_DOWNLOAD_URL}/alpine/helm:3.2.3",
+      name: 'helm',
+      command: 'cat',
+      ttyEnabled: true
+    )
+  ],
+  volumes: [
+    hostPathVolume(
+      hostPath: '/var/run/docker.sock',
+      mountPath: '/var/run/docker.sock'
+    ),
+  ]
+)
+{
 timeout(time: 30, unit: 'MINUTES') {
-    node("${BUILD_NODE}") {
+    node(POD_LABEL) {
 
         stage("Checkout branch $BRANCH_NAME") {
             checkout(scm)
@@ -29,14 +60,18 @@ timeout(time: 30, unit: 'MINUTES') {
         }
 
         try {
-            stage("Run Test") {
-                sh """
-                    export DISPLAY=":1"
-                    ./gradlew run
-                """
+            container('builder'){
+                stage("Run Test") {
+                    sh """
+                        export DISPLAY=":1"
+                        ./gradlew run
+                        ./gradlew assemble
+                    """
+                }
             }
         } finally {
             stage("Publish Report") {
+                container('builder'){
                 step([$class             : 'CucumberReportPublisher',
                       buildStatus        : 'FAILURE',
                       fileExcludePattern : '',
@@ -48,6 +83,7 @@ timeout(time: 30, unit: 'MINUTES') {
                       pendingFails       : false,
                       skippedFails       : false,
                       undefinedFails     : false])
+                }
             }
 
             withCredentials([
@@ -60,25 +96,24 @@ timeout(time: 30, unit: 'MINUTES') {
                      usernameVariable: 'ORG_GRADLE_PROJECT_dockerRegistryUsername',
                      passwordVariable: 'ORG_GRADLE_PROJECT_dockerRegistryPassword']
             ]) {
-                stage('Docker build') {
+                    stage('Docker build') {
                     container('docker') {
                         withDockerRegistry(credentialsId: 'dockerCredentials', url: "https://${DOCKER_REGISTRY_DOWNLOAD_URL}") {  //TODO
                         sh """
-                            docker build --network=host -t "${DOCKER_REGISTRY_PUBLIC_UPLOAD_URL}"/omar-cucumber-backend-test:${BRANCH_NAME} .
+                            docker build --network=host -t "${DOCKER_REGISTRY_PUBLIC_UPLOAD_URL}"/omar-cucumber-frontend-test:${BRANCH_NAME} .
                         """
                         }
                     }
-                }
-                stage('Docker push'){
-                    container('docker') {
+                    stage('Docker push'){
+                        container('docker') {
                         withDockerRegistry(credentialsId: 'dockerCredentials', url: "https://${DOCKER_REGISTRY_PUBLIC_UPLOAD_URL}") {
                         sh """
-                            docker push "${DOCKER_REGISTRY_PUBLIC_UPLOAD_URL}"/omar-cucumber-backend-test:${BRANCH_NAME}
+                            docker push "${DOCKER_REGISTRY_PUBLIC_UPLOAD_URL}"/omar-cucumber-frontend-test:${BRANCH_NAME}
                         """
                         }
+                        }
                     }
-                }
-                    
+                    }
             }
 
             stage('Package chart'){
@@ -104,7 +139,7 @@ timeout(time: 30, unit: 'MINUTES') {
         }
     }
 }
-
+}
 /**
  * Returns the docker image tag suffix, including the colon, or an empty string.
  *

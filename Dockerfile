@@ -11,11 +11,11 @@ RUN mkdir /home/omar/src/main
 
 COPY /src/main/ /home/omar/src/main  
 COPY /build/classes/groovy /home/omar/build/classes
-COPY /build/libs/omar-cucumber-backend-test-latest.jar home/omar/ 
+COPY /build/libs/omar-cucumber-frontend-test-latest.jar home/omar/ 
 RUN chown 1001:0 -R /home/omar/
 RUN chmod -R 777 /home/omar/
 EXPOSE 8080
 USER 1001
 VOLUME /conf
 WORKDIR /home/omar
-CMD ['java', '-server', '-Xms256m', '-Xmx1024m', '-Djava.awt.headless=true', '-XX:+CMSClassUnloadingEnabled', '-XX:+UseGCOverheadLimit', '-Djava.security.egd=file:/dev/./urandom', '-jar', "omar-cucumber-backend-test-${version}.jar"]
+CMD ['java', '-server', '-Xms256m', '-Xmx1024m', '-Djava.awt.headless=true', '-XX:+CMSClassUnloadingEnabled', '-XX:+UseGCOverheadLimit', '-Djava.security.egd=file:/dev/./urandom', '-jar', "omar-cucumber-frontend-test-${version}.jar"]
